@@ -23,7 +23,7 @@ El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre dire
 
 1. Descargar o clonar el repositorio y abrir `detector_voz.html` en **Google Chrome** (doble clic).
 2. En el campo **Link del modelo**, borrar `./modelo/` y pegar el link del modelo de Teachable Machine:
-   `[https://teachablemachine.withgoogle.com/models/N-KnGK03D/]`
+   `https://teachablemachine.withgoogle.com/models/N-KnGK03D/`
 3. Dar clic en **Cargar y escuchar** y permitir el micrófono.
 4. Hablar o reproducir un audio cerca del micrófono. La página muestra ✅ **VOZ REAL**, 🚨 **VOZ CLONADA** o 🤔 **DUDOSA**, con la probabilidad de cada clase.
 
