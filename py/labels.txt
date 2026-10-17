@@ -1,0 +1,3 @@
+0 Ruido de fondo
+1 Voz_Clonada
+2 Voz_Real
