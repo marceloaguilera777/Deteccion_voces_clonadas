@@ -1,4 +1,4 @@
-# ¿Voz real o clonada por IA? 🎙️🤖
+# ¿Voz real o clonada por IA? 
 
 Detector que escucha una voz y dice si es de una **persona real** o si fue **clonada con inteligencia artificial**.
 El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre directamente en el navegador con **TensorFlow.js**.
@@ -18,30 +18,23 @@ El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre dire
 
 ## Cómo hacerlo funcionar
 
-> ⚠️ El navegador no deja usar el micrófono ni cargar el modelo si abres el `.html` con doble clic (`file://`). Hay que abrirlo desde un servidor, con cualquiera de estas dos opciones.
+### Forma rápida (recomendada)
 
-### Opción A: en línea (sin instalar nada)
+1. Descargar o clonar el repositorio y abrir `detector_voz.html` en **Google Chrome** (doble clic).
+2. En el campo **Link del modelo**, borrar `./modelo/` y pegar el link del modelo de Teachable Machine:
+   `https://teachablemachine.withgoogle.com/models/N-KnGK03D/`
+3. Dar clic en **Cargar y escuchar** y permitir el micrófono.
+4. Hablar o reproducir un audio cerca del micrófono. La página muestra ✅ **VOZ REAL**, 🚨 **VOZ CLONADA** o 🤔 **DUDOSA**, con la probabilidad de cada clase.
 
-Abrir: **`[pega aquí el link de GitHub Pages]`**
+### Sin depender del link (modelo local)
 
-1. Dejar el campo del modelo como está (`./modelo/`) y dar clic en **Cargar y escuchar**.
-2. Permitir el micrófono cuando Chrome lo pida.
-3. Hablar o reproducir un audio cerca del micrófono. La página muestra ✅ **VOZ REAL**, 🚨 **VOZ CLONADA** o 🤔 **DUDOSA**, con la probabilidad de cada clase.
-
-### Opción B: en la computadora
-
-Requisito: Python 3 (solo se usa para levantar un servidor local).
+La carpeta `modelo/` tiene una copia del modelo. Para usarla, la página se debe abrir desde un servidor, porque el navegador no deja leer archivos locales con doble clic:
 
 ```bash
-git clone [pega aquí el link del repositorio]
-cd [nombre-del-repositorio]
 python -m http.server 8000
 ```
 
-Luego abrir en **Google Chrome**: <http://localhost:8000/detector_voz.html> y seguir los mismos pasos de la Opción A.
-
-> Si la carpeta `modelo/` no carga, se puede pegar en el campo del modelo el link de Teachable Machine:
-> `[pega aquí tu link https://teachablemachine.withgoogle.com/models/XXXX/]`
+Luego abrir <http://localhost:8000/detector_voz.html>, dejar `./modelo/` en el campo del modelo y seguir los pasos 3 y 4.
 
 ## Modo evaluación (cómo se obtuvieron los resultados)
 
