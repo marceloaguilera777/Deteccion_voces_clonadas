@@ -1,4 +1,4 @@
-# ¿Voz real o clonada por IA? 🎙️🤖
+# ¿Voz real o clonada por IA? 
 
 Detector que escucha una voz y dice si es de una **persona real** o si fue **clonada con inteligencia artificial**.
 El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre directamente en el navegador con **TensorFlow.js**.
@@ -13,9 +13,7 @@ El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre dire
 |---|---|
 | `detector_voz.html` | La aplicación: carga el modelo, escucha el micrófono y muestra REAL / CLONADA. Tiene un modo de evaluación que arma la matriz de confusión y calcula las métricas. |
 | `modelo/` | El modelo exportado de Teachable Machine (TensorFlow.js): `model.json`, `metadata.json` y `weights.bin`. |
-| `detector_voz.py` | Versión en Python del detector: usa el modelo exportado en TensorFlow Lite, escucha el micrófono en vivo y evalúa carpetas de audios con la matriz de confusión y las métricas. |
-| `soundclassifier_with_metadata.tflite`, `labels.txt` | El mismo modelo exportado en TensorFlow Lite, para la versión en Python. |
-| `requirements.txt` | Librerías de Python necesarias. |
+| `python/` | Versión en Python del detector: `detector_voz.py`, el modelo en TensorFlow Lite (`soundclassifier_with_metadata.tflite` + `labels.txt`) y `requirements.txt`. Escucha el micrófono en vivo y evalúa carpetas de audios con la matriz de confusión y las métricas. |
 | `docs/` | El artículo científico en PDF. |
 | `frases_grabacion.txt` | Las 25 frases usadas: 1 a 20 para el entrenamiento y 21 a 25 para la prueba externa. |
 
@@ -43,7 +41,10 @@ Luego abrir <http://localhost:8000/detector_voz.html>, dejar `./modelo/` en el c
 
 Requisito: Python 3.9 a 3.12.
 
-1. El modelo (`soundclassifier_with_metadata.tflite` y `labels.txt`) ya viene en el repositorio, junto a `detector_voz.py`.
+1. Entrar a la carpeta `python/` (ahí ya vienen el script y el modelo en TensorFlow Lite):
+   ```bash
+   cd python
+   ```
 2. Instalar las librerías:
    ```bash
    pip install -r requirements.txt
