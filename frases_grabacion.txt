@@ -1,0 +1,56 @@
+FRASES PARA GRABAR - Proyecto: voz real vs voz clonada por IA
+=============================================================
+
+COMO GRABAR (igual para todos)
+- Mismo celular o microfono para todas las personas.
+- Cuarto silencioso, a unos 20 cm del micro.
+- Voz normal, como si hablaras con un amigo. No leas como robot.
+- Deja 1 segundo de silencio entre frase y frase.
+- Guarda un archivo por persona: real_persona1.wav, real_persona2.wav, etc.
+
+PARA CLONAR
+- Usa los primeros 30 segundos de la grabacion de cada persona como "audio de referencia".
+- En F5-TTS y en XTTS-v2 genera EXACTAMENTE las mismas 20 frases.
+- Guarda: clon_f5_persona1.wav, clon_xtts_persona1.wav, etc.
+
+
+A) 20 FRASES DE ENTRENAMIENTO (las leen tus 4 o 5 participantes)
+-----------------------------------------------------------------
+1.  Hola, ¿cómo estás? Hace tiempo que no hablamos.
+2.  Mamá, tuve un problema y necesito que me ayudes urgente.
+3.  El banco me llamó para confirmar una transferencia de mil quinientos bolivianos.
+4.  Mañana tengo examen de inteligencia artificial a las ocho de la mañana.
+5.  ¿Me puedes pasar el código de verificación que te llegó por mensaje?
+6.  Los perros ladraron toda la noche y no pude dormir.
+7.  Compré tres kilos de papa, dos de tomate y un poco de queso.
+8.  El jueves llueve, así que lleva paraguas y una chamarra gruesa.
+9.  Por favor, no le digas a nadie lo que te conté ayer.
+10. La reunión se cambió para las cuatro y media de la tarde.
+11. Ese partido estuvo increíble, ganamos en el último minuto.
+12. Necesito que deposites el dinero hoy antes de las seis.
+13. Rápidamente, el zorro saltó sobre el gallinero vacío.
+14. Mi número de cuenta termina en cuarenta y siete.
+15. ¡Qué rico huele! ¿Qué estás cocinando?
+16. Ya estoy llegando, espérame en la puerta principal.
+17. Guillermo y Ximena viajaron juntos a Chile en julio.
+18. No reconozco este número, ¿quién habla?
+19. Te mando la ubicación por WhatsApp en un ratito.
+20. Gracias por todo, te llamo más tarde para contarte.
+
+
+B) 5 FRASES DE PRUEBA EXTERNA (NO se usan en el entrenamiento)
+---------------------------------------------------------------
+Las leen las 2 personas que NO participaron en el entrenamiento,
+y después las clonas igual con F5-TTS y XTTS-v2.
+
+21. Hola hijo, se me perdió el celular y este es mi número nuevo.
+22. El viernes vamos al cine si terminamos el proyecto temprano.
+23. Confirmo que autorizo el pago de la factura pendiente.
+24. Hoy amaneció muy frío y el cielo está completamente nublado.
+25. Cuando llegues avísame, que estoy preocupado.
+
+
+POR QUE ESTAS FRASES
+- Varias imitan estafas reales (dinero urgente, códigos, cuentas): así la demo es más realista.
+- Tienen números, preguntas, exclamaciones y sonidos difíciles (rr, ll, j, x, ch) para variar la fonética.
+- Todas duran de 2 a 5 segundos.
