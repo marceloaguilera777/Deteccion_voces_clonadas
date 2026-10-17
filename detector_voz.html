@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detector de Voz Clonada</title>
+<style>
+  :root {
+    --bg1: #0e141c; --bg2: #26364a; --bg3: #4a6584;
+    --glass: rgba(220, 232, 245, 0.07); --glass-strong: rgba(220, 232, 245, 0.12);
+    --edge: rgba(220, 232, 245, 0.22); --edge-soft: rgba(220, 232, 245, 0.10);
+    --text: #e9eef4; --muted: #9fb0c3; --accent: #7a9cc2; --accent2: #b4c8de; --accent-deep: #4f6d8f;
+    --real: #4fd1a5; --clon: #ff6b78; --noise: #8d9bab;
+    --input: rgba(10, 16, 24, 0.40);
+    --blob1: #5b7a9d; --blob2: #3f5770; --blob3: #8aa3bd;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg1: #e8edf2; --bg2: #c3cfdb; --bg3: #9db0c4;
+      --glass: rgba(255, 255, 255, 0.45); --glass-strong: rgba(255, 255, 255, 0.6);
+      --edge: rgba(255, 255, 255, 0.85); --edge-soft: rgba(40, 60, 85, 0.14);
+      --text: #17222f; --muted: #4a5c70; --accent: #4f6d8f; --accent2: #2f4a68; --accent-deep: #3b5675;
+      --real: #11926a; --clon: #d93a4c; --noise: #66768a;
+      --input: rgba(255, 255, 255, 0.55);
+      --blob1: #9fb6cf; --blob2: #b8c7d6; --blob3: #7f98b3;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { min-height: 100%; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    background: radial-gradient(1200px 800px at 10% -10%, var(--bg3) 0%, transparent 55%),
+                radial-gradient(900px 700px at 110% 20%, var(--bg2) 0%, transparent 60%),
+                linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  /* Floating blurred blobs behind the glass */
+  .blob { position: fixed; border-radius: 50%; filter: blur(70px); opacity: .55; z-index: 0; pointer-events: none; }
+  .b1 { width: 440px; height: 440px; background: var(--blob1); top: -120px; left: -100px; animation: float 18s ease-in-out infinite, morph 14s ease-in-out infinite; }
+  .b2 { width: 380px; height: 380px; background: var(--blob2); bottom: -120px; right: -80px; animation: float 22s ease-in-out infinite reverse, morph 17s ease-in-out infinite reverse; }
+  .b3 { width: 300px; height: 300px; background: var(--blob3); top: 45%; left: 55%; opacity: .35; animation: float 26s ease-in-out infinite, morph 20s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(60px, 40px) scale(1.08); } 66% { transform: translate(-30px, 60px) scale(.95); } }
+  @keyframes morph { 0%,100% { border-radius: 50% 50% 50% 50%; } 25% { border-radius: 60% 40% 55% 45%; } 50% { border-radius: 40% 60% 45% 55%; } 75% { border-radius: 55% 45% 40% 60%; } }
+
+  /* Entrance + interaction animations */
+  @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.98); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes shine { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @keyframes flash { 0% { background: rgba(180, 200, 222, .35); } 100% { background: transparent; } }
+  @keyframes alarm { 0%,100% { box-shadow: 0 0 30px rgba(255, 107, 120, .35), inset 0 1px 0 rgba(255,255,255,.4); } 50% { box-shadow: 0 0 70px rgba(255, 107, 120, .75), inset 0 1px 0 rgba(255,255,255,.4); } }
+  @keyframes breathe { 0%,100% { box-shadow: 0 0 24px rgba(79, 209, 165, .18), inset 0 1px 0 var(--edge); } 50% { box-shadow: 0 0 48px rgba(79, 209, 165, .40), inset 0 1px 0 var(--edge); } }
+  @keyframes eq { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  header > * { animation: rise .7s cubic-bezier(.2,.8,.2,1) backwards; }
+  header > *:nth-child(2) { animation-delay: .08s; } header > *:nth-child(3) { animation-delay: .16s; }
+  .glass { animation: rise .8s cubic-bezier(.2,.8,.2,1) backwards; }
+  main > .glass:nth-of-type(1) { animation-delay: .2s; } main > .glass:nth-of-type(2) { animation-delay: .32s; } main > .glass:nth-of-type(3) { animation-delay: .44s; }
+
+  main { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; padding: 32px 16px 56px; }
+  header { text-align: center; margin-bottom: 24px; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+           background: var(--glass); border: 1px solid var(--edge); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--muted); }
+  h1 { font-size: 34px; margin: 12px 0 6px; letter-spacing: -.02em;
+       background: linear-gradient(90deg, var(--text), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2 { font-size: 18px; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: #fff; box-shadow: 0 4px 14px rgba(40, 60, 90, .45); }
+  p.sub { color: var(--muted); margin: 0 auto 8px; max-width: 640px; }
+
+  .glass {
+    position: relative; background: var(--glass); border: 1px solid var(--edge-soft); border-radius: 24px; padding: 22px; margin-bottom: 18px;
+    backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+    box-shadow: 0 10px 40px rgba(0, 10, 40, .35), inset 0 1px 0 var(--edge), inset 0 -1px 0 rgba(255,255,255,.04);
+    overflow: hidden;
+  }
+  .glass::before { /* liquid highlight */
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(135deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 40%);
+  }
+  .glass::after { /* light sweep across the glass */
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+    animation: shine 9s ease-in-out infinite; animation-delay: 1.5s;
+  }
+  .glass { transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; }
+  .glass:hover { transform: translateY(-3px); box-shadow: 0 18px 50px rgba(0, 10, 30, .45), inset 0 1px 0 var(--edge); }
+  .glass > * { position: relative; }
+
+  label { font-size: 14px; color: var(--muted); display: block; margin-bottom: 6px; }
+  input[type=text], select {
+    width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--edge-soft); background: var(--input); color: var(--text);
+    font-size: 15px; outline: none; transition: border-color .15s, box-shadow .15s;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  select option { color: #0b1d44; background: #eaf2ff; }
+  input[type=text]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(122, 156, 194, .25); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+
+  button {
+    position: relative; overflow: hidden;
+    padding: 11px 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); cursor: pointer;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%); color: #fff; font-size: 15px; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(30, 45, 70, .45), inset 0 1px 0 rgba(255,255,255,.4); transition: transform .15s, box-shadow .15s;
+  }
+  button::after { /* sheen on hover */
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); transform: translateX(-150%) skewX(-20deg);
+  }
+  button:hover:not(:disabled)::after { animation: shine .8s ease; }
+  button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(30, 45, 70, .55), inset 0 1px 0 rgba(255,255,255,.4); }
+  button:active:not(:disabled) { transform: translateY(0) scale(.97); }
+  .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.45); transform: scale(0); animation: ripple .6s ease-out forwards; pointer-events: none; }
+  @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+  button.ghost { background: var(--glass-strong); color: var(--text); border: 1px solid var(--edge); box-shadow: inset 0 1px 0 var(--edge);
+                 backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  button:disabled { opacity: .45; cursor: default; transform: none; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  #status { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--input); border: 1px solid var(--edge-soft); }
+  .ind { flex: none; display: none; }
+  .ind.eq { display: flex; gap: 3px; align-items: center; height: 16px; }
+  .ind.eq i { width: 3px; height: 16px; border-radius: 2px; background: var(--real); transform-origin: center; animation: eq .9s ease-in-out infinite; }
+  .ind.eq i:nth-child(2) { animation-delay: .15s; } .ind.eq i:nth-child(3) { animation-delay: .3s; } .ind.eq i:nth-child(4) { animation-delay: .45s; }
+  .ind.load { display: block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--edge); border-top-color: var(--accent2); animation: spin .8s linear infinite; }
+
+  #verdict {
+    text-align: center; font-size: 46px; font-weight: 800; letter-spacing: -.01em; padding: 30px 10px; border-radius: 22px;
+    background: var(--glass-strong); border: 1px solid var(--edge); box-shadow: inset 0 1px 0 var(--edge); transition: all .2s;
+  }
+  #verdict.real { color: var(--real); border-color: var(--real); animation: breathe 2.4s ease-in-out infinite; }
+  #verdict.clon { color: #fff; background: linear-gradient(135deg, rgba(255, 107, 120, .88), rgba(190, 40, 65, .88)); border-color: var(--clon);
+                  animation: alarm 1s ease-in-out infinite; }
+  #verdict.noise { color: var(--noise); }
+  #verdict small { display: block; font-size: 16px; font-weight: 500; margin-top: 6px; opacity: .9; }
+  #verdict .main { display: inline-block; }
+  #verdict.changed .main { animation: pop .35s ease; }
+
+  .bar { margin: 14px 0 4px; }
+  .bar .lbl { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+  .bar .track { height: 14px; background: var(--input); border: 1px solid var(--edge-soft); border-radius: 999px; overflow: hidden; }
+  .bar { animation: rise .5s ease backwards; }
+  .bar .fill { position: relative; height: 100%; width: 0; border-radius: 999px; transition: width .25s cubic-bezier(.2,.8,.2,1); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 0 12px currentColor; overflow: hidden; }
+  .bar .fill::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); animation: shine 2.2s linear infinite; }
+
+  .tablewrap { overflow-x: auto; margin-top: 18px; border-radius: 16px; border: 1px solid var(--edge-soft); background: var(--input); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { padding: 11px 10px; text-align: center; border-bottom: 1px solid var(--edge-soft); }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  th:first-child, td:first-child { text-align: left; }
+  td.hit { color: var(--real); font-weight: 700; }
+  td.miss { color: var(--clon); font-weight: 700; }
+  td.bump { animation: flash .7s ease; }
+  tbody tr { transition: background .2s; }
+  tbody tr:hover { background: rgba(180, 200, 222, .08); }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  @media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+  .metric { background: var(--glass-strong); border: 1px solid var(--edge); border-radius: 18px; padding: 14px 10px; text-align: center;
+            box-shadow: inset 0 1px 0 var(--edge); transition: transform .25s, box-shadow .25s; animation: rise .6s ease backwards; }
+  .metric:nth-child(2) { animation-delay: .08s; } .metric:nth-child(3) { animation-delay: .16s; } .metric:nth-child(4) { animation-delay: .24s; }
+  .metric:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 10px 24px rgba(0,10,30,.3), inset 0 1px 0 var(--edge); }
+  .metric b { display: block; font-size: 26px; background: linear-gradient(180deg, var(--text), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .metric b.pop { animation: pop .4s ease; }
+  .metric span { font-size: 13px; color: var(--muted); }
+
+  .check { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); margin-top: 30px; cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  @media (max-width: 640px) { .check { margin-top: 4px; } }
+  pre { white-space: pre-wrap; background: var(--input); border: 1px solid var(--edge-soft); border-radius: 14px; padding: 12px; font-size: 13px; margin-top: 14px; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<main>
+  <header>
+    <span class="badge">Teachable Machine · Audio</span>
+    <h1>Detector de Voz Clonada</h1>
+    <p class="sub">Escucha el micrófono y dice si la voz es real o fue clonada con inteligencia artificial.</p>
+  </header>
+
+  <section class="glass">
+    <h2><span class="num">1</span>Cargar el modelo</h2>
+    <div class="row">
+      <div>
+        <label for="url">Link del modelo (Teachable Machine) o carpeta local</label>
+        <input id="url" type="text" value="./modelo/" placeholder="https://teachablemachine.withgoogle.com/models/XXXX/">
+      </div>
+      <div>
+        <label for="mode">Modo</label>
+        <select id="mode">
+          <option value="demo">Demo en vivo (ventanas solapadas, más fluido)</option>
+          <option value="eval">Evaluación (ventanas de 1 s sin solapar, para el artículo)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div>
+        <label for="thr">Umbral de alerta de voz clonada: <b id="thrv">80</b> %</label>
+        <input id="thr" type="range" min="50" max="99" value="80">
+      </div>
+    </div>
+    <div class="btns">
+      <button id="start">Cargar y escuchar</button>
+      <button id="stop" class="ghost" disabled>Detener</button>
+    </div>
+    <div id="status"><span id="ind" class="ind"><i></i><i></i><i></i><i></i></span><span id="statusText">Modelo sin cargar.</span></div>
+  </section>
+
+  <section class="glass">
+    <div id="verdict"><span class="main">—</span><small>Esperando audio</small></div>
+    <div id="bars"></div>
+  </section>
+
+  <section class="glass">
+    <h2><span class="num">2</span>Evaluación para el artículo</h2>
+    <p class="sub" style="margin:0 0 14px">Elige qué estás reproduciendo, pon los audios de prueba (con VB-Cable o por el parlante) y la página va llenando la matriz de confusión.</p>
+    <div class="row">
+      <div>
+        <label for="expected">Clase que estás reproduciendo ahora</label>
+        <select id="expected">
+          <option value="">No contar (solo demo)</option>
+          <option value="ruido">Ruido de fondo</option>
+          <option value="real">Voz real</option>
+          <option value="xtts">Voz clonada (XTTS-v2)</option>
+        </select>
+      </div>
+      <div>
+        <label class="check"><input id="skipSilence" type="checkbox" checked> Ignorar silencios entre frases cuando se reproduce voz</label>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="cm">
+        <thead><tr><th>Clase real \ Predicha</th><th>Ruido</th><th>Voz real</th><th>Voz clonada</th><th>Total</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="metrics">
+      <div class="metric"><b id="mAcc">–</b><span>Exactitud [1]</span></div>
+      <div class="metric"><b id="mPre">–</b><span>Precisión [2]</span></div>
+      <div class="metric"><b id="mRec">–</b><span>Sensibilidad [3]</span></div>
+      <div class="metric"><b id="mF1">–</b><span>F1 [4]</span></div>
+    </div>
+    <div class="btns">
+      <button id="copy" class="ghost">Copiar resultados</button>
+      <button id="reset" class="ghost">Borrar conteo</button>
+    </div>
+    <pre id="out" hidden></pre>
+  </section>
+  <footer>Clase positiva para las métricas: voz clonada.</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ROWS = [["ruido", "Ruido de fondo"], ["real", "Voz real"], ["xtts", "Voz clonada (XTTS-v2)"]];
+const COLORS = { ruido: "var(--noise)", real: "var(--real)", clon: "var(--clon)" };
+const EXPECTED_KIND = { ruido: "ruido", real: "real", xtts: "clon" };
+let recognizer = null, labels = [], kinds = [];
+
+function emptyCounts() { const c = {}; ROWS.forEach(([k]) => c[k] = { ruido: 0, real: 0, clon: 0 }); return c; }
+let counts = emptyCounts();
+// Keep counts saved by the previous version of this page (same storage key)
+try { const s = localStorage.getItem("vozclon_counts"); if (s) { const old = JSON.parse(s); ROWS.forEach(([k]) => { if (old[k]) counts[k] = old[k]; }); } } catch (e) {}
+function save() { try { localStorage.setItem("vozclon_counts", JSON.stringify(counts)); } catch (e) {} }
+
+// Map Teachable Machine class names to ruido / real / clon
+function kindOf(label) {
+  const l = label.toLowerCase();
+  if (l.includes("clon") || l.includes("fake")) return "clon";
+  if (l.includes("real") || l.includes("humana")) return "real";
+  return "ruido"; // "Background Noise" y cualquier otra
+}
+
+function drawBars() {
+  $("bars").innerHTML = labels.map((l, i) =>
+    `<div class="bar" style="animation-delay:${i * 0.08}s"><div class="lbl"><span>${l}</span><span id="p${i}">0 %</span></div>
+     <div class="track"><div class="fill" id="f${i}" style="background:${COLORS[kinds[i]]};color:${COLORS[kinds[i]]}"></div></div></div>`).join("");
+}
+
+function setStatus(text, ind) { $("statusText").textContent = text; $("ind").className = "ind" + (ind ? " " + ind : ""); }
+
+// Restart a CSS animation class on an element
+function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+let lastVerdict = "";
+function setVerdict(cls, main, small) {
+  const v = $("verdict");
+  v.className = cls;
+  v.innerHTML = `<span class="main">${main}</span><small>${small}</small>`;
+  if (main !== lastVerdict) { replay(v, "changed"); lastVerdict = main; }
+}
+
+// Ripple effect on every button
+document.addEventListener("pointerdown", e => {
+  const b = e.target.closest("button");
+  if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), s = document.createElement("span");
+  s.className = "ripple"; s.style.width = s.style.height = d + "px";
+  s.style.left = (e.clientX - r.left - d / 2) + "px"; s.style.top = (e.clientY - r.top - d / 2) + "px";
+  b.appendChild(s); setTimeout(() => s.remove(), 650);
+});
+
+function pct(x) { return isFinite(x) ? (x * 100).toFixed(1) + " %" : "–"; }
+
+function render(bumped) {
+  const tb = $("cm").querySelector("tbody");
+  tb.innerHTML = ROWS.map(([k, name]) => {
+    const r = counts[k], tot = r.ruido + r.real + r.clon;
+    const cell = col => {
+      const cls = [r[col] ? (EXPECTED_KIND[k] === col ? "hit" : "miss") : "", bumped && bumped[0] === k && bumped[1] === col ? "bump" : ""].join(" ").trim();
+      return `<td class="${cls}">${r[col]}</td>`;
+    };
+    return `<tr><td>${name}</td>${cell("ruido")}${cell("real")}${cell("clon")}<td>${tot}</td></tr>`;
+  }).join("");
+  // Binary metrics, positive class = voz clonada
+  const r = counts.xtts;
+  const VP = r.clon, FN = r.ruido + r.real;
+  const FP = counts.ruido.clon + counts.real.clon;
+  const VN = counts.ruido.ruido + counts.ruido.real + counts.real.ruido + counts.real.real;
+  const acc = (VP + VN) / (VP + VN + FP + FN), pre = VP / (VP + FP), rec = VP / (VP + FN), f1 = 2 * pre * rec / (pre + rec);
+  const setMetric = (id, txt) => { const el = $(id); if (el.textContent !== txt) { el.textContent = txt; replay(el, "pop"); } };
+  setMetric("mAcc", pct(acc)); setMetric("mPre", pct(pre)); setMetric("mRec", pct(rec));
+  setMetric("mF1", isFinite(f1) ? f1.toFixed(3) : "–");
+  return { VP, FN, FP, VN, acc, pre, rec, f1 };
+}
+
+function onResult(result) {
+  const s = Array.from(result.scores);
+  let best = 0; s.forEach((v, i) => { if (v > s[best]) best = i; });
+  s.forEach((v, i) => { $("f" + i).style.width = (v * 100) + "%"; $("p" + i).textContent = (v * 100).toFixed(1) + " %"; });
+
+  const thr = +$("thr").value / 100;
+  const pClon = s.reduce((a, v, i) => a + (kinds[i] === "clon" ? v : 0), 0);
+  if (pClon >= thr) setVerdict("clon", "🚨 VOZ CLONADA", `${(pClon * 100).toFixed(1)} % de probabilidad`);
+  else if (kinds[best] === "real") setVerdict("real", "✅ VOZ REAL", `${(s[best] * 100).toFixed(1)} % de probabilidad`);
+  else if (kinds[best] === "clon") setVerdict("", "🤔 DUDOSA", "Parece clonada, pero no supera el umbral");
+  else setVerdict("noise", "…", "Silencio o ruido de fondo");
+
+  const exp = $("expected").value;
+  if (!exp) return;
+  const pred = kinds[best];
+  if (exp !== "ruido" && pred === "ruido" && $("skipSilence").checked) return;
+  counts[exp][pred]++;
+  save(); render([exp, pred]);
+}
+
+async function start() {
+  $("start").disabled = true;
+  let url = $("url").value.trim();
+  if (!url.endsWith("/")) url += "/";
+  setStatus("Cargando modelo…", "load");
+  try {
+    recognizer = speechCommands.create("BROWSER_FFT", undefined, url + "model.json", url + "metadata.json");
+    await recognizer.ensureModelLoaded();
+    labels = recognizer.wordLabels();
+    kinds = labels.map(kindOf);
+    drawBars();
+    const overlap = $("mode").value === "eval" ? 0 : 0.5;
+    await recognizer.listen(onResult, { includeSpectrogram: false, probabilityThreshold: 0, invokeCallbackOnNoiseAndUnknown: true, overlapFactor: overlap });
+    setStatus("Escuchando. Clases: " + labels.map((l, i) => `${l} → ${kinds[i]}`).join(", "), "eq");
+    $("stop").disabled = false;
+  } catch (e) {
+    console.error(e);
+    setStatus("No se pudo cargar: " + e.message + ". Revisa el link o abre la página con un servidor local (ver instrucciones).");
+    $("start").disabled = false;
+  }
+}
+
+async function stop() {
+  if (recognizer && recognizer.isListening()) await recognizer.stopListening();
+  $("start").disabled = false; $("stop").disabled = true;
+  setStatus("Detenido.");
+}
+
+$("start").onclick = start;
+$("stop").onclick = stop;
+$("thr").oninput = () => $("thrv").textContent = $("thr").value;
+$("reset").onclick = () => { if (confirm("¿Borrar todo el conteo?")) { counts = emptyCounts(); save(); render(); } };
+$("copy").onclick = () => {
+  const m = render();
+  const lines = ["Matriz de confusión (filas = clase real, columnas = predicha: ruido / real / clonada)"];
+  ROWS.forEach(([k, n]) => lines.push(`${n}: ${counts[k].ruido} / ${counts[k].real} / ${counts[k].clon}`));
+  const r = counts.xtts, t = r.ruido + r.real + r.clon;
+  lines.push(`Tasa de detección XTTS-v2: ${r.clon}/${t} = ${pct(r.clon / t)}`);
+  lines.push(`VP=${m.VP} VN=${m.VN} FP=${m.FP} FN=${m.FN}`);
+  lines.push(`Exactitud=${pct(m.acc)} Precisión=${pct(m.pre)} Sensibilidad=${pct(m.rec)} F1=${isFinite(m.f1) ? m.f1.toFixed(3) : "–"}`);
+  const txt = lines.join("\n");
+  $("out").hidden = false; $("out").textContent = txt;
+  try { navigator.clipboard.writeText(txt); } catch (e) {}
+};
+render();
+</script>
+</body>
+</html>
