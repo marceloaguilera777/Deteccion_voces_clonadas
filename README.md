@@ -1,4 +1,4 @@
-# ¿Voz real o clonada por IA? 
+# ¿Voz real o clonada por IA? 🎙️🤖
 
 Detector que escucha una voz y dice si es de una **persona real** o si fue **clonada con inteligencia artificial**.
 El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre directamente en el navegador con **TensorFlow.js**.
@@ -13,6 +13,9 @@ El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre dire
 |---|---|
 | `detector_voz.html` | La aplicación: carga el modelo, escucha el micrófono y muestra REAL / CLONADA. Tiene un modo de evaluación que arma la matriz de confusión y calcula las métricas. |
 | `modelo/` | El modelo exportado de Teachable Machine (TensorFlow.js): `model.json`, `metadata.json` y `weights.bin`. |
+| `detector_voz.py` | Versión en Python del detector: usa el modelo exportado en TensorFlow Lite, escucha el micrófono en vivo y evalúa carpetas de audios con la matriz de confusión y las métricas. |
+| `soundclassifier_with_metadata.tflite`, `labels.txt` | El mismo modelo exportado en TensorFlow Lite, para la versión en Python. |
+| `requirements.txt` | Librerías de Python necesarias. |
 | `docs/` | El artículo científico en PDF. |
 | `frases_grabacion.txt` | Las 25 frases usadas: 1 a 20 para el entrenamiento y 21 a 25 para la prueba externa. |
 
@@ -22,7 +25,7 @@ El modelo se entrenó con **Teachable Machine** (proyecto de audio) y corre dire
 
 1. Descargar o clonar el repositorio y abrir `detector_voz.html` en **Google Chrome** (doble clic).
 2. En el campo **Link del modelo**, borrar `./modelo/` y pegar el link del modelo de Teachable Machine:
-   `https://teachablemachine.withgoogle.com/models/N-KnGK03D/`
+   `[https://teachablemachine.withgoogle.com/models/N-KnGK03D/]`
 3. Dar clic en **Cargar y escuchar** y permitir el micrófono.
 4. Hablar o reproducir un audio cerca del micrófono. La página muestra ✅ **VOZ REAL**, 🚨 **VOZ CLONADA** o 🤔 **DUDOSA**, con la probabilidad de cada clase.
 
@@ -35,6 +38,25 @@ python -m http.server 8000
 ```
 
 Luego abrir <http://localhost:8000/detector_voz.html>, dejar `./modelo/` en el campo del modelo y seguir los pasos 3 y 4.
+
+## Versión en Python
+
+Requisito: Python 3.9 a 3.12.
+
+1. El modelo (`soundclassifier_with_metadata.tflite` y `labels.txt`) ya viene en el repositorio, junto a `detector_voz.py`.
+2. Instalar las librerías:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Detector en vivo (micrófono):
+   ```bash
+   python detector_voz.py vivo
+   ```
+   Para elegir otro micrófono, ver la lista con `python -m sounddevice` y usar `--dispositivo N`.
+4. Evaluar carpetas de audios (matriz de confusión y métricas):
+   ```bash
+   python detector_voz.py evaluar --reales carpeta_reales --clonadas carpeta_clonadas
+   ```
 
 ## Modo evaluación (cómo se obtuvieron los resultados)
 
@@ -64,7 +86,7 @@ El modelo funciona por encima del azar (exactitud balanceada de 62,2 % frente a 
 
 ## Tecnologías
 
-Teachable Machine · TensorFlow.js · `@tensorflow-models/speech-commands` · XTTS-v2 · VB-Cable
+Teachable Machine · TensorFlow.js · TensorFlow Lite · Python · `@tensorflow-models/speech-commands` · XTTS-v2 · VB-Cable
 
 ## Ética
 
